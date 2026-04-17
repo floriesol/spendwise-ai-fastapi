@@ -9,3 +9,11 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 import models
 from database import engine, get_db
+
+class RegisterRequest(BaseModel):
+    username:   str
+    email:      str
+    password:   str
+    first_name: Optional[str] = ""
+    income_type:  Optional[str] = "other"
+    income_cycle: Optional[str] = "monthly"
