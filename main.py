@@ -10,10 +10,30 @@ from passlib.context import CryptContext
 import models
 from database import engine, get_db
 
+
 class RegisterRequest(BaseModel):
-    username:   str
-    email:      str
-    password:   str
-    first_name: Optional[str] = ""
+    username:     str
+    email:        str
+    password:     str
+    first_name:   Optional[str] = ""
     income_type:  Optional[str] = "other"
     income_cycle: Optional[str] = "monthly"
+
+
+class ExpenseCreate(BaseModel):
+    amount:       float
+    category_key: str
+    description:  Optional[str] = ""
+    timestamp:    str
+
+
+class ExpenseUpdate(BaseModel):
+    amount:      Optional[float] = None
+    description: Optional[str]  = None
+
+
+class SavingsGoalCreate(BaseModel):
+    name:           str
+    target_amount:  float
+    current_amount: Optional[float] = 0
+    deadline:       Optional[str]   = None
