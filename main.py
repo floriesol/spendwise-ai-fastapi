@@ -120,6 +120,27 @@ def seed_categories(db: Session):
         db.add_all(categories)
         db.commit()
 
+# ── PROFILE ───────────────────────────────────────────────
+@app.patch("/profile")
+def update_profile(
+    data:         ProfileUpdate,
+    current_user: models.User = Depends(get_current_user),
+    db:           Session     = Depends(get_db)
+):
+    user = db.query(models.User).filter(models.User.id == current_user.id).first()
+    if data.income_amount is not None: user.income_amount = data.income_amount
+    if data.savings_goal  is not None: user.savings_goal  = data.savings_goal
+    if data.income_type   is not None: user.income_type   = data.income_type
+    if data.income_cycle  is not None: user.income_cycle  = data.income_cycle
+    db.commit()
+    db.refresh(user)
+    return {
+        "income_amount": user.income_amount,
+        "savings_goal":  user.savings_goal,
+        "income_type":   user.income_type,
+        "income_cycle":  user.income_cycle,
+    }
+
 # ── Startup ───────────────────────────────────────────────
 @app.on_event("startup")
 def startup():
