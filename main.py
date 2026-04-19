@@ -223,3 +223,100 @@ def me(current_user: models.User = Depends(get_current_user)):
         "income_amount": current_user.income_amount,
         "savings_goal": current_user.savings_goal,
     }
+    
+# ── CATEGORIES ────────────────────────────────────────────
+@app.get("/categories")
+def get_categories(db: Session = Depends(get_db)):
+    return db.query(models.Category).all()
+
+# ── EXPENSES ──────────────────────────────────────────────
+@app.get("/expenses")
+def get_expenses(
+    current_user: models.User = Depends(get_current_user),
+    db:           Session     = Depends(get_db)
+):
+    expenses = db.query(models.Expense).filter(
+        models.Expense.user_id == current_user.id
+    ).order_by(models.Expense.created_at.desc()).all()
+
+    return [{
+        "id":          e.id,
+        "amount":      e.amount,
+        "description": e.description,
+        "timestamp":   e.timestamp,
+        "created_at":  e.created_at,
+        "updated_at":  e.updated_at,
+        "category": {
+            "key":   e.category.key   if e.category else None,
+            "label": e.category.label if e.category else None,
+            "icon":  e.category.icon  if e.category else None,
+            "color": e.category.color if e.category else None,
+        }
+    } for e in expenses]
+
+@app.post("/expenses", status_code=201)
+def create_expense(
+    data:         ExpenseCreate,
+    current_user: models.User = Depends(get_current_user),
+    db:           Session     = Depends(get_db)
+):
+    category = db.query(models.Category).filter(
+        models.Category.key == data.category_key
+    ).first()
+    if not category:
+        raise HTTPException(status_code=400, detail=f"Category '{data.category_key}' not found")
+
+    expense = models.Expense(
+        amount      = data.amount,
+        description = data.description,
+        timestamp   = data.timestamp,
+        user_id     = current_user.id,
+        category_id = category.id,
+    )
+    db.add(expense)
+    db.commit()
+    db.refresh(expense)
+    return {
+        "id":          expense.id,
+        "amount":      expense.amount,
+        "description": expense.description,
+        "timestamp":   expense.timestamp,
+        "category":    {"key": category.key, "label": category.label, "icon": category.icon, "color": category.color},
+        "message":     "Expense created successfully"
+    }
+
+@app.patch("/expenses/{expense_id}")
+def update_expense(
+    expense_id:   int,
+    data:         ExpenseUpdate,
+    current_user: models.User = Depends(get_current_user),
+    db:           Session     = Depends(get_db)
+):
+    expense = db.query(models.Expense).filter(
+        models.Expense.id      == expense_id,
+        models.Expense.user_id == current_user.id
+    ).first()
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+
+    if data.amount      is not None: expense.amount      = data.amount
+    if data.description is not None: expense.description = data.description
+    expense.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(expense)
+    return {"id": expense.id, "amount": expense.amount, "description": expense.description, "message": "Updated successfully"}
+
+@app.delete("/expenses/{expense_id}", status_code=204)
+def delete_expense(
+    expense_id:   int,
+    current_user: models.User = Depends(get_current_user),
+    db:           Session     = Depends(get_db)
+):
+    expense = db.query(models.Expense).filter(
+        models.Expense.id      == expense_id,
+        models.Expense.user_id == current_user.id
+    ).first()
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    db.delete(expense)
+    db.commit()
