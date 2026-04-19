@@ -45,6 +45,12 @@ class RegisterRequest(BaseModel):
     income_type:  Optional[str] = "other"
     income_cycle: Optional[str] = "monthly"
 
+class ProfileUpdate(BaseModel):
+    income_amount: Optional[float] = None
+    savings_goal:  Optional[float] = None
+    income_type:   Optional[str]   = None 
+    income_cycle:  Optional[str]   = None
+
 
 class ExpenseCreate(BaseModel):
     amount:       float
