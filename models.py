@@ -50,3 +50,30 @@ class Expense(Base):
 
     owner    = relationship("User", back_populates="expenses")
     category = relationship("Category", back_populates="expenses")
+
+class SavingsGoal(Base):
+    __tablename__ = "savings_goals"
+
+    id             = Column(Integer, primary_key=True, index=True)
+    name           = Column(String)
+    target_amount  = Column(Float)
+    current_amount = Column(Float, default=0)
+    deadline       = Column(String, nullable=True)
+    created_at     = Column(DateTime, default=datetime.utcnow)
+    user_id        = Column(Integer, ForeignKey("users.id"))
+
+    owner = relationship("User", back_populates="savings_goals")
+
+
+class Alert(Base):
+    __tablename__ = "alerts"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    type       = Column(String)
+    title      = Column(String)
+    message    = Column(Text)
+    is_read    = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    user_id    = Column(Integer, ForeignKey("users.id"))
+
+    owner = relationship("User", back_populates="alerts")
