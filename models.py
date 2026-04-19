@@ -22,6 +22,7 @@ class User(Base):
     expenses      = relationship("Expense", back_populates="owner")
     alerts        = relationship("Alert", back_populates="owner")
     savings_goals = relationship("SavingsGoal", back_populates="owner")
+    ml_insight    = relationship("MLInsight", back_populates="owner")
 
 
 class Category(Base):
@@ -77,3 +78,20 @@ class Alert(Base):
     user_id    = Column(Integer, ForeignKey("users.id"))
 
     owner = relationship("User", back_populates="alerts")
+
+
+class MLInsight(Base):
+    __tablename__ = "ml_insights"
+
+    id                  = Column(Integer, primary_key=True, index=True)
+    user_id             = Column(Integer, ForeignKey("users.id"))
+    user_cluster        = Column(String, default="Balanced")
+    cluster_description = Column(Text, default="")
+    daily_burn_rate     = Column(Float, default=0)
+    days_remaining      = Column(Integer, default=0)
+    risk_level          = Column(String, default="safe")
+    model_accuracy      = Column(Float, default=94.2)
+    prediction          = Column(Text, default="")
+    last_updated        = Column(DateTime, default=datetime.utcnow)
+
+    owner = relationship("User", back_populates="ml_insight")

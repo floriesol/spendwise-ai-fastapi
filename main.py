@@ -420,3 +420,25 @@ def get_alerts(
     return db.query(models.Alert).filter(
         models.Alert.user_id == current_user.id
     ).order_by(models.Alert.created_at.desc()).all()
+
+# ── INSIGHTS ──────────────────────────────────────────────
+@app.get("/insights")
+def get_insights(
+    current_user: models.User = Depends(get_current_user),
+    db:           Session     = Depends(get_db)
+):
+    insight = db.query(models.MLInsight).filter(
+        models.MLInsight.user_id == current_user.id
+    ).first()
+    if not insight:
+        raise HTTPException(status_code=404, detail="No insights found")
+    return {
+        "user_cluster":        insight.user_cluster,
+        "cluster_description": insight.cluster_description,
+        "daily_burn_rate":     insight.daily_burn_rate,
+        "days_remaining":      insight.days_remaining,
+        "risk_level":          insight.risk_level,
+        "model_accuracy":      insight.model_accuracy,
+        "prediction":          insight.prediction,
+        "last_updated":        insight.last_updated,
+    }
