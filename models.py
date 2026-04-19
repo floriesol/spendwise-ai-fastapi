@@ -27,4 +27,3 @@ class User(Base):
     alerts         = relationship("Alert", back_populates="owner")
     savings_goals  = relationship("SavingsGoal", back_populates="owner")
 
-
