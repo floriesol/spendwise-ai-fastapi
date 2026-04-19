@@ -320,3 +320,103 @@ def delete_expense(
         raise HTTPException(status_code=404, detail="Expense not found")
     db.delete(expense)
     db.commit()
+
+    # ── DASHBOARD ─────────────────────────────────────────────
+@app.get("/dashboard")
+def dashboard(
+    current_user: models.User = Depends(get_current_user),
+    db:           Session     = Depends(get_db)
+):
+    expenses = db.query(models.Expense).filter(
+        models.Expense.user_id == current_user.id
+    ).all()
+
+    total_expenses = sum(e.amount for e in expenses)
+    income         = current_user.income_amount or 0
+    balance        = income - total_expenses
+
+    breakdown = {}
+    for e in expenses:
+        key = e.category.key if e.category else "other"
+        breakdown[key] = breakdown.get(key, 0) + e.amount
+
+    return {
+        "balance":             balance,
+        "total_expenses":      total_expenses,
+        "total_income":        income,
+        "average_daily_spend": round(total_expenses / 30, 2),
+        "savings_goal":        current_user.savings_goal or 0,
+        "category_breakdown":  breakdown,
+    }
+
+# ── SAVINGS GOALS ─────────────────────────────────────────
+@app.get("/savings-goals")
+def get_savings_goals(
+    current_user: models.User = Depends(get_current_user),
+    db:           Session     = Depends(get_db)
+):
+    return db.query(models.SavingsGoal).filter(
+        models.SavingsGoal.user_id == current_user.id
+    ).all()
+
+@app.post("/savings-goals", status_code=201)
+def create_savings_goal(
+    data:         SavingsGoalCreate,
+    current_user: models.User = Depends(get_current_user),
+    db:           Session     = Depends(get_db)
+):
+    goal = models.SavingsGoal(
+        name           = data.name,
+        target_amount  = data.target_amount,
+        current_amount = data.current_amount,
+        deadline       = data.deadline,
+        user_id        = current_user.id,
+    )
+    db.add(goal)
+    db.commit()
+    db.refresh(goal)
+    return goal
+
+@app.patch("/savings-goals/{goal_id}")
+def update_savings_goal(
+    goal_id:      int,
+    data:         SavingsGoalUpdate,
+    current_user: models.User = Depends(get_current_user),
+    db:           Session     = Depends(get_db)
+):
+    goal = db.query(models.SavingsGoal).filter(
+        models.SavingsGoal.id      == goal_id,
+        models.SavingsGoal.user_id == current_user.id
+    ).first()
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    if data.current_amount is not None: goal.current_amount = data.current_amount
+    if data.name           is not None: goal.name           = data.name
+    db.commit()
+    db.refresh(goal)
+    return goal
+
+@app.delete("/savings-goals/{goal_id}", status_code=204)
+def delete_savings_goal(
+    goal_id:      int,
+    current_user: models.User = Depends(get_current_user),
+    db:           Session     = Depends(get_db)
+):
+    goal = db.query(models.SavingsGoal).filter(
+        models.SavingsGoal.id      == goal_id,
+        models.SavingsGoal.user_id == current_user.id
+    ).first()
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    db.delete(goal)
+    db.commit()
+
+# ── ALERTS ────────────────────────────────────────────────
+@app.get("/alerts")
+def get_alerts(
+    current_user: models.User = Depends(get_current_user),
+    db:           Session     = Depends(get_db)
+):
+    return db.query(models.Alert).filter(
+        models.Alert.user_id == current_user.id
+    ).order_by(models.Alert.created_at.desc()).all()
