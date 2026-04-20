@@ -74,10 +74,10 @@ class SavingsGoalUpdate(BaseModel):
 
 # ── Helper functions ──────────────────────────────────────
 def hash_password(password: str):
-    return pwd_context.hash(password)
+    return pwd_context.hash(password[:72])
 
 def verify_password(plain, hashed):
-    return pwd_context.verify(plain, hashed)
+    return pwd_context.verify(plain[:72], hashed)
 
 def create_token(data: dict):
     to_encode = data.copy()
