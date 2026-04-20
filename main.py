@@ -11,6 +11,7 @@ import models
 from database import engine, get_db
 
 # ── Create tables ─────────────────────────────────────────
+models.Base.metadata.drop_all(bind=engine)
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -31,7 +32,7 @@ app.add_middleware(
 # ── JWT Config ────────────────────────────────────────────
 SECRET_KEY = "spendwise-secret-key-2026"
 ALGORITHM  = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # 1 day
+ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 
 pwd_context   = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
@@ -48,9 +49,8 @@ class RegisterRequest(BaseModel):
 class ProfileUpdate(BaseModel):
     income_amount: Optional[float] = None
     savings_goal:  Optional[float] = None
-    income_type:   Optional[str]   = None 
+    income_type:   Optional[str]   = None
     income_cycle:  Optional[str]   = None
-
 
 class ExpenseCreate(BaseModel):
     amount:       float
@@ -58,11 +58,9 @@ class ExpenseCreate(BaseModel):
     description:  Optional[str] = ""
     timestamp:    str
 
-
 class ExpenseUpdate(BaseModel):
     amount:      Optional[float] = None
     description: Optional[str]  = None
-
 
 class SavingsGoalCreate(BaseModel):
     name:           str
@@ -120,6 +118,22 @@ def seed_categories(db: Session):
         db.add_all(categories)
         db.commit()
 
+# ── Startup ───────────────────────────────────────────────
+@app.on_event("startup")
+def startup():
+    db = next(get_db())
+    seed_categories(db)
+
+# ── Root ──────────────────────────────────────────────────
+@app.get("/")
+def root():
+    return {
+        "system":  "SpendWise AI",
+        "version": "1.0.0",
+        "status":  "running",
+        "docs":    "http://127.0.0.1:8000/docs",
+    }
+
 # ── PROFILE ───────────────────────────────────────────────
 @app.patch("/profile")
 def update_profile(
@@ -139,22 +153,6 @@ def update_profile(
         "savings_goal":  user.savings_goal,
         "income_type":   user.income_type,
         "income_cycle":  user.income_cycle,
-    }
-
-# ── Startup ───────────────────────────────────────────────
-@app.on_event("startup")
-def startup():
-    db = next(get_db())
-    seed_categories(db)
-
-# ── Root ──────────────────────────────────────────────────
-@app.get("/")
-def root():
-    return {
-        "system":  "SpendWise AI",
-        "version": "1.0.0",
-        "status":  "running",
-        "docs":    "http://127.0.0.1:8000/docs",
     }
 
 # ── AUTH ──────────────────────────────────────────────────
@@ -214,16 +212,16 @@ def login(
 @app.get("/auth/me")
 def me(current_user: models.User = Depends(get_current_user)):
     return {
-        "id":           current_user.id,
-        "username":     current_user.username,
-        "email":        current_user.email,
-        "first_name":   current_user.first_name,
-        "income_type":  current_user.income_type,
-        "income_cycle": current_user.income_cycle,
+        "id":            current_user.id,
+        "username":      current_user.username,
+        "email":         current_user.email,
+        "first_name":    current_user.first_name,
+        "income_type":   current_user.income_type,
+        "income_cycle":  current_user.income_cycle,
         "income_amount": current_user.income_amount,
-        "savings_goal": current_user.savings_goal,
+        "savings_goal":  current_user.savings_goal,
     }
-    
+
 # ── CATEGORIES ────────────────────────────────────────────
 @app.get("/categories")
 def get_categories(db: Session = Depends(get_db)):
@@ -321,7 +319,7 @@ def delete_expense(
     db.delete(expense)
     db.commit()
 
-    # ── DASHBOARD ─────────────────────────────────────────────
+# ── DASHBOARD ─────────────────────────────────────────────
 @app.get("/dashboard")
 def dashboard(
     current_user: models.User = Depends(get_current_user),
